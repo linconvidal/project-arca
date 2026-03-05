@@ -17,16 +17,15 @@
         // Local:  /demo/index.html → BASE = /demo/
         // GH Pages: /project-arca/index.html → BASE = /project-arca/
         (function() {
+            if (window.BASE_PATH) return; // Already set by SW
             var path = document.currentScript
                 ? new URL(document.currentScript.baseURI).pathname
                 : window.location.pathname;
             // Strip filename if present
             window.BASE_PATH = path.replace(/\/[^/]*\.[^/]*$/, '/');
             if (!window.BASE_PATH.endsWith('/')) window.BASE_PATH += '/';
-            // For the SW scope — on GH Pages this is the repo path
-            // On local dev with Service-Worker-Allowed header, we can use /
-            window.SW_SCOPE = window.BASE_PATH;
         })();
+        if (!window.SW_SCOPE) window.SW_SCOPE = window.BASE_PATH;
     </script>
 
     <style>
