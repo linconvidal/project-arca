@@ -195,8 +195,9 @@ async function serveShellWithContent(content, path) {
 
         const fullPage = shell
             .replace('<!-- SW_CONTENT_PLACEHOLDER -->', content)
+            .replace('<head>', '<head>\n<script>window.BASE_PATH="' + BASE + '";window.SW_SCOPE="' + BASE + '";</script>')
             .replace('</head>',
-                '<script>window.BASE_PATH="' + BASE + '";window.__preRenderedPath = "' + path.replace(/"/g, '\\"') + '";</script>\n</head>');
+                '<script>window.__preRenderedPath = "' + path.replace(/"/g, '\\"') + '";</script>\n</head>');
 
         return new Response(fullPage, {
             status: 200,
@@ -217,8 +218,10 @@ async function serveShellWithAutoLoad(path) {
     try {
         const shell = await fetch(BASE + 'index.html').then(r => r.text());
 
-        const fullPage = shell.replace('</head>',
-            '<script>window.BASE_PATH="' + BASE + '";window.__autoLoadPath = "' + path.replace(/"/g, '\\"') + '";</script>\n</head>');
+        const fullPage = shell
+            .replace('<head>', '<head>\n<script>window.BASE_PATH="' + BASE + '";window.SW_SCOPE="' + BASE + '";</script>')
+            .replace('</head>',
+                '<script>window.__autoLoadPath = "' + path.replace(/"/g, '\\"') + '";</script>\n</head>');
 
         return new Response(fullPage, {
             status: 200,
