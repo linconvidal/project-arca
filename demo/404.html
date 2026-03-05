@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // SPA redirect for GitHub Pages
+        // Stores the attempted path and redirects to index.html
+        // which picks it up via __autoLoadPath
+        var basePath = location.pathname;
+        // Find the base by looking for known segments that indicate a route
+        var routeSegments = ['/list/', '/view/', '/edit/', '/new/', '/delete/', '/save/'];
+        var routePath = '/';
+        for (var i = 0; i < routeSegments.length; i++) {
+            var idx = basePath.indexOf(routeSegments[i]);
+            if (idx !== -1) {
+                routePath = basePath.substring(idx);
+                basePath = basePath.substring(0, idx);
+                break;
+            }
+        }
+        // If no route segment found, this might be the root or unknown path
+        if (routePath === '/') {
+            // Check if the path ends with the repo name
+            basePath = location.pathname.replace(/\/$/, '');
+            routePath = '/';
+        }
+        sessionStorage.setItem('spa_redirect', routePath);
+        location.replace(basePath + '/' + location.search + location.hash);
+    </script>
+</head>
+<body>
+    <p>Redirecting...</p>
+</body>
+</html>

@@ -1,0 +1,46 @@
+name: Deploy Demo to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build site
+        run: |
+          mkdir -p _site/arca/components
+          # Demo files → site root
+          cp demo/index.html demo/sw.js demo/main.py _site/
+          # 404.html for SPA routing
+          cp demo/404.html _site/
+          # Real Arca components
+          cp arca/__init__.py _site/arca/
+          cp arca/components/__init__.py _site/arca/components/
+          cp arca/components/layout.py _site/arca/components/
+          cp arca/components/list_view.py _site/arca/components/
+          cp arca/components/detail_view.py _site/arca/components/
+          cp arca/components/edit_form.py _site/arca/components/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

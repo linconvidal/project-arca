@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arca CMS - Browser Demo</title>
+
+    <!-- Line Awesome Icons -->
+    <link rel="stylesheet" href="https://maxst.icons8.com/vue-static/landings/line-awesome/line-awesome/1.3.0/css/line-awesome.min.css">
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <!-- Base path detection — works for local dev (/demo/) and GitHub Pages (/project-arca/) -->
+    <script>
+        // Detect base path from where index.html is served
+        // Local:  /demo/index.html → BASE = /demo/
+        // GH Pages: /project-arca/index.html → BASE = /project-arca/
+        (function() {
+            var path = document.currentScript
+                ? new URL(document.currentScript.baseURI).pathname
+                : window.location.pathname;
+            // Strip filename if present
+            window.BASE_PATH = path.replace(/\/[^/]*\.[^/]*$/, '/');
+            if (!window.BASE_PATH.endsWith('/')) window.BASE_PATH += '/';
+            // For the SW scope — on GH Pages this is the repo path
+            // On local dev with Service-Worker-Allowed header, we can use /
+            window.SW_SCOPE = window.BASE_PATH;
+        })();
+    </script>
+
+    <style>
+        /* Windows 98 Color Palette */
+        :root {
+            --win98-gray: #c0c0c0;
+            --win98-dark-gray: #808080;
+            --win98-darker-gray: #404040;
+            --win98-light-gray: #dfdfdf;
+            --win98-black: #000000;
+            --win98-white: #ffffff;
+            --win98-blue: #0000ff;
+            --win98-dark-blue: #000080;
+            --win98-cyan: #00ffff;
+            --win98-red: #ff0000;
+            --win98-yellow: #ffff00;
+            --win98-green: #00ff00;
+            --win98-magenta: #ff00ff;
+            --title-bar-gradient: linear-gradient(90deg, #000080, #1084d0);
+            --menu-gradient: linear-gradient(to bottom, #fff, #ece9d8);
+            --button-face: var(--win98-gray);
+            --button-highlight: var(--win98-white);
+            --button-shadow: var(--win98-dark-gray);
+            --neon-blue: #00b2ff;
+        }
+
+        body {
+            font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--win98-gray);
+            margin: 0; padding: 0;
+            color: var(--win98-black);
+            overflow: hidden;
+            height: 100vh;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+            font-size: 12px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 16px; height: 16px; }
+        ::-webkit-scrollbar-track { background: var(--win98-gray); border-left: 1px solid var(--win98-white); border-top: 1px solid var(--win98-white); border-right: 1px solid var(--win98-dark-gray); border-bottom: 1px solid var(--win98-dark-gray); }
+        ::-webkit-scrollbar-thumb { background: var(--win98-gray); border-left: 1px solid var(--win98-white); border-top: 1px solid var(--win98-white); border-right: 1px solid var(--win98-dark-gray); border-bottom: 1px solid var(--win98-dark-gray); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--win98-light-gray); }
+
+        /* Panel */
+        .win98-panel { background-color: var(--win98-gray); border: 2px solid; border-color: var(--win98-white) var(--win98-black) var(--win98-black) var(--win98-white); box-shadow: 2px 2px 0 var(--win98-white) inset, -2px -2px 0 var(--win98-dark-gray) inset; }
+        .win98-panel-inset { background-color: var(--win98-white); border: 2px inset var(--win98-gray); }
+
+        /* Window */
+        .win98-window { background-color: var(--win98-gray); border: 2px solid; border-color: var(--win98-white) var(--win98-black) var(--win98-black) var(--win98-white); box-shadow: 1px 1px 0 var(--win98-dark-gray) inset, -1px -1px 0 var(--win98-white) inset; margin-bottom: 10px; }
+        .win98-window-title { background-image: var(--title-bar-gradient); padding: 2px 3px; color: var(--win98-white); font-weight: bold; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* Button */
+        .win98-btn { font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif; background-color: var(--button-face); border: 2px solid; border-color: var(--win98-white) var(--win98-black) var(--win98-black) var(--win98-white); box-shadow: 1px 1px 0 var(--win98-dark-gray) inset, -1px -1px 0 var(--win98-white) inset; padding: 4px 10px; font-size: 12px; color: var(--win98-black); cursor: pointer; outline: none; margin-right: 5px; }
+        .win98-btn:active { border-color: var(--win98-black) var(--win98-white) var(--win98-white) var(--win98-black); box-shadow: 1px 1px 0 var(--win98-white) inset, -1px -1px 0 var(--win98-dark-gray) inset; padding: 5px 9px 3px 11px; }
+        .win98-btn:focus { outline: 1px dotted black; outline-offset: -5px; }
+
+        /* Table */
+        .win98-table { border-collapse: collapse; width: 100%; border: 1px solid var(--win98-dark-gray); font-size: 12px; }
+        .win98-table-header { background-color: var(--win98-gray); font-weight: bold; }
+        .win98-table-header th { padding: 4px 8px; text-align: left; border: 1px solid var(--win98-dark-gray); }
+        .win98-table-cell { padding: 4px 8px; border-bottom: 1px solid var(--win98-dark-gray); border-right: 1px solid var(--win98-dark-gray); }
+        .win98-table-row:hover, .win98-table-row-alt:hover { background-color: var(--win98-light-gray); }
+        .win98-table-row-alt { background-color: #f0f0f0; }
+        .text-left { text-align: left; } .text-center { text-align: center; } .text-right { text-align: right; }
+
+        /* Icon button */
+        .win98-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background-color: var(--button-face); border: 2px solid; border-color: var(--win98-white) var(--win98-black) var(--win98-black) var(--win98-white); box-shadow: 1px 1px 0 var(--win98-dark-gray) inset, -1px -1px 0 var(--win98-white) inset; padding: 2px; margin: 0 2px; cursor: pointer; }
+        .win98-icon-btn:active { border-color: var(--win98-black) var(--win98-white) var(--win98-white) var(--win98-black); }
+
+        /* Icons */
+        .las { color: var(--win98-black); -webkit-font-smoothing: none; font-size: 16px; }
+        .la-sm { font-size: 12px; } .la-md { font-size: 16px; } .la-lg { font-size: 24px; }
+        .win98-icon { image-rendering: pixelated; text-shadow: 0.5px 0 0 var(--win98-dark-gray), 0 0.5px 0 var(--win98-dark-gray); }
+        .win98-icon.primary { color: var(--win98-dark-blue); }
+        .win98-icon.destructive { color: var(--win98-red); }
+        .win98-icon.success { color: var(--win98-green); }
+
+        /* Form */
+        .win98-input { background-color: white; border-top: 2px solid var(--win98-dark-gray); border-left: 2px solid var(--win98-dark-gray); border-right: 2px solid white; border-bottom: 2px solid white; padding: 4px; font-family: "MS Sans Serif", Arial, sans-serif; font-size: 12px; outline: none; }
+        .win98-input:focus { box-shadow: 0 0 10px rgba(0, 178, 255, 0.4); }
+
+        /* Desktop layout */
+        .desktop { height: 100vh; display: flex; flex-direction: column; background-color: #008080; background-image: linear-gradient(135deg, rgba(0,139,139,0.4), rgba(0,80,120,0.6)); position: relative; }
+        .desktop:after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03), rgba(0,0,0,0.03) 1px, transparent 1px, transparent 2px); pointer-events: none; z-index: 10; opacity: 0.5; }
+        .desktop:before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; box-shadow: inset 0 0 100px rgba(0,0,0,0.4); pointer-events: none; z-index: 5; }
+
+        .main-layout { display: flex; flex-direction: column; height: 100%; }
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+        .sidebar { width: 200px; background-color: var(--win98-gray); border-right: 2px solid var(--win98-dark-gray); padding: 10px; overflow-y: auto; background-image: var(--menu-gradient); }
+        .main-content { flex: 1; padding: 10px; overflow: auto; background: linear-gradient(135deg, rgba(192,192,192,0.7), rgba(223,223,223,0.7)); }
+
+        /* Status bar */
+        .status-bar { display: flex; background-color: var(--win98-gray); border-top: 2px solid var(--win98-dark-gray); height: 22px; padding: 2px 5px; font-size: 12px; align-items: center; }
+        .status-item { padding: 0 10px; border-right: 1px solid var(--win98-dark-gray); display: flex; align-items: center; height: 100%; }
+        .active-connection { color: var(--win98-blue); position: relative; }
+        .active-connection:after { content: ''; display: inline-block; width: 6px; height: 6px; background-color: var(--neon-blue); border-radius: 50%; margin-left: 5px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 70% { opacity: 1; } 100% { opacity: 0.3; } }
+
+        /* Window controls */
+        .control-button { width: 16px; height: 14px; margin-left: 4px; background-color: var(--win98-gray); border-top: 1px solid white; border-left: 1px solid white; border-right: 1px solid var(--win98-dark-gray); border-bottom: 1px solid var(--win98-dark-gray); cursor: pointer; position: relative; }
+        .control-button:active { border-top: 1px solid var(--win98-dark-gray); border-left: 1px solid var(--win98-dark-gray); border-right: 1px solid white; border-bottom: 1px solid white; }
+        .control-button.close::before, .control-button.close::after { content: ''; position: absolute; width: 8px; height: 2px; background-color: black; top: 6px; left: 4px; }
+        .control-button.close::before { transform: rotate(45deg); }
+        .control-button.close::after { transform: rotate(-45deg); }
+        .control-button.maximize::before { content: ''; position: absolute; width: 8px; height: 8px; border: 1px solid black; top: 2px; left: 3px; }
+        .control-button.minimize::before { content: ''; position: absolute; width: 8px; height: 2px; background-color: black; top: 6px; left: 4px; }
+
+        /* Cyber text */
+        .cyber-text { color: white; text-shadow: 0 0 2px var(--neon-blue), 0 0 10px rgba(0,178,255,0.3); letter-spacing: 1px; animation: cyber-glow 4s ease-in-out infinite alternate; }
+        @keyframes cyber-glow { 0% { text-shadow: 0 0 2px var(--neon-blue), 0 0 5px rgba(0,178,255,0.3); } 100% { text-shadow: 0 0 5px var(--neon-blue), 0 0 15px rgba(138,43,226,0.5); } }
+
+        /* Separator */
+        .win98-separator { border-top: 1px solid var(--win98-dark-gray); border-bottom: 1px solid var(--win98-white); margin: 4px 0; }
+
+        /* Fix: history tab table inside .win98-table div wrapper */
+        .win98-table table { border-collapse: collapse; width: 100%; font-size: 12px; }
+        .win98-table table th { padding: 4px 8px; text-align: left; border: 1px solid var(--win98-dark-gray); background-color: var(--win98-gray); font-weight: bold; }
+        .win98-table table td { padding: 4px 8px; border-bottom: 1px solid var(--win98-dark-gray); border-right: 1px solid var(--win98-dark-gray); }
+        .win98-table table tr:hover { background-color: var(--win98-light-gray); }
+
+        /* Loading overlay */
+        #loading-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #008080;
+            background-image: linear-gradient(135deg, rgba(0,139,139,0.4), rgba(0,80,120,0.6));
+            font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
+        }
+        #loading-overlay .boot-window {
+            background-color: var(--win98-gray);
+            border: 2px solid;
+            border-color: var(--win98-white) var(--win98-black) var(--win98-black) var(--win98-white);
+            box-shadow: 1px 1px 0 var(--win98-dark-gray) inset, -1px -1px 0 var(--win98-white) inset;
+            width: 400px; max-width: 90vw;
+        }
+        #loading-overlay .boot-title {
+            background-image: var(--title-bar-gradient);
+            padding: 2px 6px; color: white; font-weight: bold; font-size: 11px;
+        }
+        #loading-overlay .boot-content { padding: 20px; text-align: center; }
+        #loading-overlay .progress-bar-outer {
+            width: 100%; height: 20px; background-color: var(--win98-white);
+            border: 2px inset var(--win98-gray); margin-top: 15px;
+        }
+        #loading-overlay .progress-bar-inner {
+            height: 100%; width: 0%; background-color: var(--win98-dark-blue);
+            transition: width 0.3s ease;
+        }
+        #loading-status { font-size: 11px; margin-top: 10px; color: var(--win98-black); }
+    </style>
+</head>
+<body>
+    <!-- If SW pre-rendered content, skip loading overlay and show app immediately -->
+    <script>
+        if (window.__preRenderedPath) {
+            document.write('<style>#loading-overlay{display:none!important}#app-shell{display:flex!important}#status-ready{color:orange}#status-pyodide:after{background-color:orange!important}</style>');
+        }
+    </script>
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay">
+        <div class="boot-window">
+            <div class="boot-title">Arca CMS - Initializing</div>
+            <div class="boot-content">
+                <i class="las la-desktop" style="font-size:48px;color:var(--win98-dark-blue);margin-bottom:10px;"></i>
+                <h2 style="font-size:14px;margin:0 0 5px;">Arca CMS</h2>
+                <p style="font-size:11px;color:var(--win98-dark-gray);margin:0 0 10px;">Loading Python runtime in your browser...</p>
+                <div class="progress-bar-outer">
+                    <div class="progress-bar-inner" id="progress-bar"></div>
+                </div>
+                <div id="loading-status">Initializing...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main application shell -->
+    <div class="desktop" id="app-shell" style="display:none;">
+        <div class="main-layout">
+            <div class="main-container">
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="win98-window" style="margin-bottom:15px;width:100%;">
+                        <div class="win98-window-title">
+                            <div style="display:flex;align-items:center;">
+                                <i class="las la-folder la-md win98-icon primary" style="margin-right:6px;"></i>
+                                <span class="cyber-text">Explorer</span>
+                            </div>
+                        </div>
+                        <div style="padding:10px;">
+                            <div style="margin-left:5px;">
+                                <div style="display:flex;align-items:center;margin-bottom:10px;cursor:pointer;"
+                                     hx-get="/" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-home la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span style="font-weight:bold;">Home</span>
+                                </div>
+
+                                <div style="margin-bottom:8px;margin-top:12px;">
+                                    <div style="font-weight:bold;color:#000080;margin-bottom:6px;font-size:11px;">CONTENT</div>
+                                    <div class="win98-separator"></div>
+                                </div>
+
+                                <div style="display:flex;align-items:center;margin-bottom:6px;cursor:pointer;"
+                                     hx-get="/list/pages" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-file-alt la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span>Pages</span>
+                                </div>
+                                <div style="display:flex;align-items:center;margin-bottom:6px;cursor:pointer;"
+                                     hx-get="/list/articles" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-newspaper la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span>Articles</span>
+                                </div>
+                                <div style="display:flex;align-items:center;margin-bottom:6px;cursor:pointer;"
+                                     hx-get="/list/projects" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-project-diagram la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span>Projects</span>
+                                </div>
+                                <div style="display:flex;align-items:center;margin-bottom:6px;cursor:pointer;"
+                                     hx-get="/list/tasks" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-tasks la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span>Tasks</span>
+                                </div>
+
+                                <div style="margin-bottom:8px;margin-top:12px;">
+                                    <div style="font-weight:bold;color:#000080;margin-bottom:6px;font-size:11px;">ADMINISTRATION</div>
+                                    <div class="win98-separator"></div>
+                                </div>
+
+                                <div style="display:flex;align-items:center;margin-bottom:6px;cursor:pointer;"
+                                     hx-get="/list/users" hx-target="#content-area" hx-push-url="true">
+                                    <i class="las la-user la-md win98-icon primary" style="margin-right:5px;"></i>
+                                    <span>Users</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Content area -->
+                <div class="main-content">
+                    <!-- Breadcrumb -->
+                    <div class="win98-panel" style="margin-bottom:10px;padding:5px;display:flex;align-items:center;">
+                        <div style="display:flex;align-items:center;margin-right:15px;cursor:pointer;"
+                             hx-get="/" hx-target="#content-area" hx-push-url="true">
+                            <i class="las la-home la-md win98-icon primary" style="margin-right:5px;"></i>
+                            <span>Home</span>
+                        </div>
+                        <div id="breadcrumb-path" style="display:flex;align-items:center;"></div>
+                        <div style="margin-left:auto;display:flex;gap:5px;">
+                            <button class="win98-btn" style="font-size:11px;padding:2px 5px;display:flex;align-items:center;"
+                                    hx-get="/new/pages" hx-target="#content-area" hx-push-url="true">
+                                <i class="las la-file la-sm win98-icon" style="margin-right:3px;"></i> New Page
+                            </button>
+                            <button class="win98-btn" style="font-size:11px;padding:2px 5px;display:flex;align-items:center;"
+                                    hx-get="/new/articles" hx-target="#content-area" hx-push-url="true">
+                                <i class="las la-newspaper la-sm win98-icon" style="margin-right:3px;"></i> New Article
+                            </button>
+                        </div>
+                    </div>
+
+                    <main>
+                        <div id="content-area" class="win98-panel-inset" style="padding:10px;height:calc(100% - 40px);overflow:auto;background-color:white;">
+                            <!-- SW_CONTENT_PLACEHOLDER -->
+                        </div>
+                    </main>
+                </div>
+            </div>
+
+            <!-- Status bar -->
+            <div class="status-bar">
+                <div class="status-item" id="status-ready">Ready</div>
+                <div class="status-item active-connection" id="status-pyodide">Pyodide</div>
+                <div class="status-item" style="margin-left:auto;" id="clock"></div>
+                <div class="status-item" style="cursor:pointer;color:var(--win98-blue);" onclick="location.reload()">Refresh</div>
+                <div class="status-item" id="demo-badge" style="color:var(--win98-dark-blue);font-weight:bold;">DEMO</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pyodide bootstrap -->
+    <script type="module">
+        import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.mjs';
+
+        const BASE = window.BASE_PATH;
+        const progressBar = document.getElementById('progress-bar');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const appShell = document.getElementById('app-shell');
+
+        function updateStatus(message, progress) {
+            console.log(message);
+            loadingStatus.textContent = message;
+            if (progress !== undefined) {
+                progressBar.style.width = progress + '%';
+            }
+        }
+
+        async function main() {
+            // Check for SPA redirect from 404.html
+            var spaRedirect = sessionStorage.getItem('spa_redirect');
+            if (spaRedirect) {
+                sessionStorage.removeItem('spa_redirect');
+                window.__autoLoadPath = spaRedirect;
+            }
+
+            // Register Service Worker (relative path — works for both local and GH Pages)
+            if ('serviceWorker' in navigator) {
+                try {
+                    updateStatus('Registering service worker...', 5);
+                    const registration = await navigator.serviceWorker.register(BASE + 'sw.js', { scope: BASE });
+                    console.log('Service Worker registered with scope:', registration.scope);
+
+                    await navigator.serviceWorker.ready;
+                    if (!navigator.serviceWorker.controller) {
+                        updateStatus('Activating service worker...', 10);
+                        window.location.reload();
+                        return;
+                    }
+                } catch (error) {
+                    console.error('SW registration failed:', error);
+                    updateStatus('Service worker failed. Please refresh.');
+                    return;
+                }
+            }
+
+            // Load Pyodide
+            updateStatus('Loading Python runtime (Pyodide)...', 15);
+            let pyodide = await loadPyodide();
+            updateStatus('Python runtime loaded.', 40);
+
+            // Install packages
+            await pyodide.loadPackage(['micropip', 'ssl']);
+            updateStatus('Installing Flask...', 50);
+            const micropip = pyodide.pyimport('micropip');
+            await micropip.install(['flask', 'markdown']);
+            updateStatus('Flask and Markdown installed.', 70);
+
+            // Load real Arca component files into Pyodide's virtual filesystem
+            updateStatus('Loading Arca components...', 75);
+            const arcaFiles = {
+                '/home/pyodide/arca/__init__.py': '',
+                '/home/pyodide/arca/components/__init__.py': '',
+                '/home/pyodide/arca/components/layout.py': BASE + 'arca/components/layout.py',
+                '/home/pyodide/arca/components/list_view.py': BASE + 'arca/components/list_view.py',
+                '/home/pyodide/arca/components/detail_view.py': BASE + 'arca/components/detail_view.py',
+                '/home/pyodide/arca/components/edit_form.py': BASE + 'arca/components/edit_form.py',
+            };
+
+            // Create directories
+            pyodide.FS.mkdirTree('/home/pyodide/arca/components');
+
+            // Fetch and write each file
+            for (const [fsPath, source] of Object.entries(arcaFiles)) {
+                let content = '';
+                if (source) {
+                    content = await fetch(source).then(res => res.text());
+                }
+                pyodide.FS.writeFile(fsPath, content);
+                console.log('Wrote:', fsPath);
+            }
+
+            // Add to Python path
+            await pyodide.runPythonAsync(`
+import sys
+if '/home/pyodide' not in sys.path:
+    sys.path.insert(0, '/home/pyodide')
+`);
+
+            // Load and run main.py
+            updateStatus('Starting Arca CMS...', 85);
+            const pythonCode = await fetch(BASE + 'main.py').then(res => res.text());
+
+            try {
+                await pyodide.runPythonAsync(pythonCode);
+                updateStatus('Application started.', 95);
+
+                // Set up message listener for Service Worker requests
+                navigator.serviceWorker.addEventListener('message', async (event) => {
+                    if (event.data.type === 'FLASK_REQUEST') {
+                        const { path, method, body, headers } = event.data;
+                        console.log(`Main thread: ${method} ${path}`);
+
+                        try {
+                            let pyCode;
+                            if (method === 'POST') {
+                                pyCode = `
+from werkzeug.test import EnvironBuilder
+from flask import Response
+
+builder = EnvironBuilder(
+    path='${path}',
+    method='POST',
+    content_type='application/x-www-form-urlencoded',
+    data='''${body.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'''
+)
+env = builder.get_environ()
+
+with app.request_context(env):
+    response = app.full_dispatch_request()
+
+response_data = response.get_data(as_text=True)
+response_status = response.status_code
+redirect_url = response.headers.get('Location', '')
+{
+    'data': response_data,
+    'status': response_status,
+    'redirect_url': redirect_url
+}`;
+                            } else {
+                                pyCode = `
+from flask import Response
+with app.test_request_context('${path}', method='${method}'):
+    response = app.full_dispatch_request()
+
+response_data = response.get_data(as_text=True)
+response_status = response.status_code
+redirect_url = response.headers.get('Location', '')
+{
+    'data': response_data,
+    'status': response_status,
+    'redirect_url': redirect_url
+}`;
+                            }
+
+                            const pyResult = await pyodide.runPython(pyCode);
+                            const result = pyResult.toJs({ dict_converter: Object.fromEntries });
+                            pyResult.destroy();
+
+                            event.ports[0].postMessage(result);
+                        } catch (error) {
+                            console.error('Error executing Flask route:', error);
+                            event.ports[0].postMessage({
+                                error: error.message,
+                                data: '<div class="win98-window"><div class="win98-window-title">Error</div><div style="padding:10px;">Error processing request: ' + error.message + '</div></div>',
+                                status: 500
+                            });
+                        }
+                    }
+                });
+
+                updateStatus('Ready!', 100);
+                console.log('Arca CMS demo ready');
+
+                // Update status bar to show Pyodide is ready
+                var sr = document.getElementById('status-ready');
+                var sp = document.getElementById('status-pyodide');
+                if (sr) sr.style.color = '';
+                if (sp) sp.style.cssText = '';
+
+                // Show the app, hide loading
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                    appShell.style.display = '';
+                    htmx.process(appShell);
+
+                    if (window.__preRenderedPath) {
+                        console.log('Content pre-rendered for', window.__preRenderedPath);
+                    } else {
+                        const targetPath = window.__autoLoadPath || '/';
+                        htmx.ajax('GET', targetPath, { target: '#content-area', swap: 'innerHTML' });
+                    }
+                }, 500);
+
+            } catch (e) {
+                console.error('Error running Python:', e);
+                updateStatus('Failed to start: ' + e.message, 0);
+            }
+        }
+
+        main();
+    </script>
+
+    <!-- Rewrite absolute paths from components to include base path -->
+    <!-- Components generate /view/articles/intro but on GH Pages we need /project-arca/view/articles/intro -->
+    <script>
+        (function() {
+            var base = window.BASE_PATH;
+            if (!base || base === '/') return; // No rewriting needed at root
+
+            var routePrefixes = ['/list/', '/view/', '/edit/', '/new/', '/delete/', '/save/'];
+            var baseNoSlash = base.replace(/\/$/, '');
+
+            // Intercept clicks on links and buttons with onclick=window.location.href
+            document.addEventListener('click', function(e) {
+                var el = e.target.closest('a[href], button[onclick], [onclick]');
+                if (!el) return;
+
+                // Handle <a href="/view/...">
+                if (el.tagName === 'A' && el.getAttribute('href')) {
+                    var href = el.getAttribute('href');
+                    for (var i = 0; i < routePrefixes.length; i++) {
+                        if (href.startsWith(routePrefixes[i])) {
+                            e.preventDefault();
+                            window.location.href = baseNoSlash + href;
+                            return;
+                        }
+                    }
+                }
+            }, true);
+
+            // Intercept window.location.href assignments via a Proxy on location
+            // This catches onclick="window.location.href='/view/...'"
+            var origDescriptor = Object.getOwnPropertyDescriptor(window, 'location');
+            // Can't override location directly, so intercept via beforeunload + popstate
+            // Instead, patch at the event level: rewrite onclick attributes on new content
+            var observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    m.addedNodes.forEach(function(node) {
+                        if (node.nodeType !== 1) return;
+                        rewriteOnclicks(node);
+                    });
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+
+            function rewriteOnclicks(root) {
+                var elements = root.querySelectorAll ? root.querySelectorAll('[onclick]') : [];
+                elements.forEach(function(el) {
+                    var onclick = el.getAttribute('onclick');
+                    if (!onclick) return;
+                    var changed = false;
+                    for (var i = 0; i < routePrefixes.length; i++) {
+                        // Match window.location.href='/view/...' or href="/view/..."
+                        var pattern = "'" + routePrefixes[i];
+                        if (onclick.indexOf(pattern) !== -1 && onclick.indexOf("'" + baseNoSlash + routePrefixes[i]) === -1) {
+                            onclick = onclick.split(pattern).join("'" + baseNoSlash + routePrefixes[i]);
+                            changed = true;
+                        }
+                        pattern = '"' + routePrefixes[i];
+                        if (onclick.indexOf(pattern) !== -1 && onclick.indexOf('"' + baseNoSlash + routePrefixes[i]) === -1) {
+                            onclick = onclick.split(pattern).join('"' + baseNoSlash + routePrefixes[i]);
+                            changed = true;
+                        }
+                        // Also handle backtick template literals
+                        pattern = '`' + routePrefixes[i];
+                        if (onclick.indexOf(pattern) !== -1 && onclick.indexOf('`' + baseNoSlash + routePrefixes[i]) === -1) {
+                            onclick = onclick.split(pattern).join('`' + baseNoSlash + routePrefixes[i]);
+                            changed = true;
+                        }
+                    }
+                    if (changed) {
+                        el.setAttribute('onclick', onclick);
+                    }
+                });
+                // Also check the root element itself
+                if (root.getAttribute && root.getAttribute('onclick')) {
+                    var onclick = root.getAttribute('onclick');
+                    var changed = false;
+                    for (var i = 0; i < routePrefixes.length; i++) {
+                        var pattern = "'" + routePrefixes[i];
+                        if (onclick.indexOf(pattern) !== -1 && onclick.indexOf("'" + baseNoSlash + routePrefixes[i]) === -1) {
+                            onclick = onclick.split(pattern).join("'" + baseNoSlash + routePrefixes[i]);
+                            changed = true;
+                        }
+                    }
+                    if (changed) root.setAttribute('onclick', onclick);
+                }
+            }
+
+            // Also rewrite href attributes on <a> tags in dynamically loaded content
+            var hrefObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    m.addedNodes.forEach(function(node) {
+                        if (node.nodeType !== 1) return;
+                        rewriteHrefs(node);
+                    });
+                });
+            });
+            hrefObserver.observe(document.body, { childList: true, subtree: true });
+
+            function rewriteHrefs(root) {
+                var links = root.querySelectorAll ? root.querySelectorAll('a[href]') : [];
+                links.forEach(function(a) {
+                    var href = a.getAttribute('href');
+                    for (var i = 0; i < routePrefixes.length; i++) {
+                        if (href.startsWith(routePrefixes[i])) {
+                            a.setAttribute('href', baseNoSlash + href);
+                            break;
+                        }
+                    }
+                });
+                if (root.tagName === 'A' && root.getAttribute('href')) {
+                    var href = root.getAttribute('href');
+                    for (var i = 0; i < routePrefixes.length; i++) {
+                        if (href.startsWith(routePrefixes[i])) {
+                            root.setAttribute('href', baseNoSlash + href);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Also rewrite form action attributes
+            var formObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(m) {
+                    m.addedNodes.forEach(function(node) {
+                        if (node.nodeType !== 1) return;
+                        rewriteForms(node);
+                    });
+                });
+            });
+            formObserver.observe(document.body, { childList: true, subtree: true });
+
+            function rewriteForms(root) {
+                var forms = root.querySelectorAll ? root.querySelectorAll('form[action]') : [];
+                forms.forEach(function(f) {
+                    var action = f.getAttribute('action');
+                    if (!action.startsWith(baseNoSlash + '/')) {
+                        for (var i = 0; i < routePrefixes.length; i++) {
+                            if (action.startsWith(routePrefixes[i]) || action.match(/^\/[a-z]/)) {
+                                f.setAttribute('action', baseNoSlash + action);
+                                break;
+                            }
+                        }
+                    }
+                });
+                if (root.tagName === 'FORM' && root.getAttribute('action')) {
+                    var action = root.getAttribute('action');
+                    if (!action.startsWith(baseNoSlash + '/')) {
+                        for (var i = 0; i < routePrefixes.length; i++) {
+                            if (action.startsWith(routePrefixes[i]) || action.match(/^\/[a-z]/)) {
+                                root.setAttribute('action', baseNoSlash + action);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        })();
+    </script>
+
+    <!-- Clock script -->
+    <script>
+        function updateClock() {
+            var now = new Date();
+            var hours = now.getHours();
+            var minutes = now.getMinutes().toString().padStart(2, '0');
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            var el = document.getElementById('clock');
+            if (el) el.textContent = hours + ':' + minutes + ' ' + ampm;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+
+    <!-- Breadcrumb script -->
+    <script>
+        var lastPath = window.location.pathname;
+        function updateBreadcrumb() {
+            var path = window.location.pathname;
+            // Strip base path for display
+            var base = window.BASE_PATH || '/';
+            if (path.startsWith(base)) path = path.substring(base.length - 1);
+            if (path !== lastPath) lastPath = path;
+            var parts = path.split('/').filter(function(p) { return p; });
+            var breadcrumb = '';
+            if (parts.length > 0) {
+                parts.forEach(function(part) {
+                    var displayPart = part.replace(/_/g, ' ');
+                    displayPart = displayPart.charAt(0).toUpperCase() + displayPart.slice(1);
+                    breadcrumb += '<span style="margin:0 5px;">&gt;</span><span>' + displayPart + '</span>';
+                });
+            }
+            var el = document.getElementById('breadcrumb-path');
+            if (el) el.innerHTML = breadcrumb;
+        }
+        document.addEventListener('htmx:pushedIntoHistory', updateBreadcrumb);
+        document.addEventListener('htmx:afterSettle', updateBreadcrumb);
+        setInterval(updateBreadcrumb, 500);
+        updateBreadcrumb();
+    </script>
+</body>
+</html>
