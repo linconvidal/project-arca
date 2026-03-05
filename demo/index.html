@@ -366,13 +366,24 @@
 
             // Load real Arca component files into Pyodide's virtual filesystem
             updateStatus('Loading Arca components...', 75);
+            // On GH Pages, arca/ is at the same level as index.html (BASE + 'arca/...')
+            // On local dev, arca/ is at the project root ('/arca/...')
+            // Try BASE first, fall back to root
+            async function fetchComponent(path) {
+                var res = await fetch(BASE + path);
+                if (res.ok) return res.text();
+                res = await fetch('/' + path);
+                if (res.ok) return res.text();
+                throw new Error('Could not fetch ' + path);
+            }
+
             const arcaFiles = {
                 '/home/pyodide/arca/__init__.py': '',
                 '/home/pyodide/arca/components/__init__.py': '',
-                '/home/pyodide/arca/components/layout.py': BASE + 'arca/components/layout.py',
-                '/home/pyodide/arca/components/list_view.py': BASE + 'arca/components/list_view.py',
-                '/home/pyodide/arca/components/detail_view.py': BASE + 'arca/components/detail_view.py',
-                '/home/pyodide/arca/components/edit_form.py': BASE + 'arca/components/edit_form.py',
+                '/home/pyodide/arca/components/layout.py': 'arca/components/layout.py',
+                '/home/pyodide/arca/components/list_view.py': 'arca/components/list_view.py',
+                '/home/pyodide/arca/components/detail_view.py': 'arca/components/detail_view.py',
+                '/home/pyodide/arca/components/edit_form.py': 'arca/components/edit_form.py',
             };
 
             // Create directories
@@ -382,7 +393,7 @@
             for (const [fsPath, source] of Object.entries(arcaFiles)) {
                 let content = '';
                 if (source) {
-                    content = await fetch(source).then(res => res.text());
+                    content = await fetchComponent(source);
                 }
                 pyodide.FS.writeFile(fsPath, content);
                 console.log('Wrote:', fsPath);
@@ -397,7 +408,8 @@ if '/home/pyodide' not in sys.path:
 
             // Load and run main.py
             updateStatus('Starting Arca CMS...', 85);
-            const pythonCode = await fetch(BASE + 'main.py').then(res => res.text());
+            // main.py is always alongside index.html
+            const pythonCode = await fetchComponent('main.py');
 
             try {
                 await pyodide.runPythonAsync(pythonCode);
@@ -655,6 +667,10 @@ redirect_url = response.headers.get('Location', '')
                     }
                 }
             }
+            // Run rewriters on existing content (for SW pre-rendered pages)
+            rewriteOnclicks(document.body);
+            rewriteHrefs(document.body);
+            rewriteForms(document.body);
         })();
     </script>
 
